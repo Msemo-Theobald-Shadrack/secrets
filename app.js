@@ -4,7 +4,8 @@ const express = require("express");
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const encrypt = require("mongoose-encryption");
+// const encrypt = require("mongoose-encryption");
+const md5 = require("md5");
 
 const app = express();
 console.log(process.env.API_KEY);
@@ -29,10 +30,10 @@ const userSchema = new mongoose.Schema({
 //cut the secret code and paste it to the .env
 //Replace secret with process.env.SECRET
 
-userSchema.plugin(encrypt, {
-  secret: process.env.SECRET,
-  encryptedFields: ["password"],
-});
+// userSchema.plugin(encrypt, {
+//   secret: process.env.SECRET,
+//   encryptedFields: ["password"],
+// });
 
 //create a user model
 const User = mongoose.model("User", userSchema);
@@ -58,7 +59,7 @@ app.get("/secrets", function (req, res) {
 app.post("/register", async function (req, res) {
   try {
     const email = req.body.username;
-    const password = req.body.password;
+    const password = md5(req.body.password);
     const user = new User({
       email: email,
       password: password,
@@ -73,7 +74,7 @@ app.post("/register", async function (req, res) {
 app.post("/login", async function (req, res) {
   try {
     const username = req.body.username;
-    const password = req.body.password;
+    const password = md5(req.body.password);
 
     const foundItem = await User.findOne({ email: username });
     if (foundItem) {
