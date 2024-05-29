@@ -5,7 +5,9 @@ const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 // const encrypt = require("mongoose-encryption");
-const md5 = require("md5");
+// const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 console.log(process.env.API_KEY);
@@ -58,14 +60,16 @@ app.get("/secrets", function (req, res) {
 
 app.post("/register", async function (req, res) {
   try {
-    const email = req.body.username;
-    const password = md5(req.body.password);
-    const user = new User({
-      email: email,
-      password: password,
+    bcrypt.hash(req.body.password, saltRounds, async function (error, hash) {
+      const email = req.body.username;
+      const password = hash;
+      const user = new User({
+        email: email,
+        password: password,
+      });
+      await user.save();
+      res.render("secrets");
     });
-    await user.save();
-    res.render("secrets");
   } catch (error) {
     console.error("Error occured when saving a new user.", error);
   }
@@ -74,15 +78,19 @@ app.post("/register", async function (req, res) {
 app.post("/login", async function (req, res) {
   try {
     const username = req.body.username;
-    const password = md5(req.body.password);
+    const password = req.body.password;
 
     const foundItem = await User.findOne({ email: username });
     if (foundItem) {
-      if (foundItem.password === password) {
-        res.render("secrets");
-      }
-    } else {
-      console.log("Incorrect email or password");
+      bcrypt.compare(
+        password,
+        foundItem.password,
+        async function (error, result) {
+          if (result === true) {
+            res.render("secrets");
+          }
+        }
+      );
     }
   } catch (error) {
     console.error("Error occured", error);
